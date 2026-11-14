@@ -1,0 +1,9 @@
+{
+  "version": "1.4.0",
+  "download_url": "https://raw.githubusercontent.com/H-ZHOWEI/shiyong-gongju/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe",
+  "notes": "新增内置「版本更新」功能：顶部常驻版本号+检查更新、后台静默检查、多镜像并发下载、断点续传、MZ/大小/SHA256 三重校验、原地替换并自动还原。",
+  "sha256": "9fa3799e54d50e5c81e0ec24e7d2824f4775462bd595dbba38f6e6a6d8089965",
+  "size": 34846886,
+  "pub_date": "2026-11-14",
+  "mandatory": false
+}

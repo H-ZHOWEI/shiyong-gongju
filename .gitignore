@@ -1,0 +1,26 @@
+# 构建产物
+build/
+__pycache__/
+*.spec
+
+# 仅保留统一打包后的主程序，旧版子工具 exe 不入库
+/dist/Excel图片导出Word.exe
+/dist/FolderImg2Word.exe
+/dist/Folder图片导出Word.exe
+
+# 个人数据 / 测试样例（不得上传）
+_原版备份.xlsx
+测试_导出.docx
+样例_图文*.xlsx
+样例_图文*_导出.docx
+样例_图文_左说明*.xlsx
+费用报销单*.xlsx
+报销单图片.png
+新建 XLSX 工作表.xlsx
+nul
+
+# 运行时生成
+update_config.json
+_update_tmp.exe
+*.bak
+*.parts/
