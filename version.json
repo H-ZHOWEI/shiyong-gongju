@@ -2,8 +2,8 @@
   "version": "1.4.2",
   "download_url": "https://raw.githubusercontent.com/H-ZHOWEI/shiyong-gongju/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe",
   "notes": "界面自适应增强 + 新增顶部菜单「设置→字体大小」：放大窗口时内容自动铺满（横向与纵向均不再留大片空地）；新增顶栏菜单可实时调整全局字体大小（小/标准/大/特大/超大）。",
-  "sha256": "d9a7c3bec20a56400ca0a119a509a31ac5f12ff3eb2daaa56da936b264195c2a",
-  "size": 34850211,
+  "sha256": "9ce9eda5ff3fd42eac07f99d41ee7089bb190dde18911a468f5c56cab6040246",
+  "size": 34849371,
   "pub_date": "2026-11-14",
   "mandatory": false
 }

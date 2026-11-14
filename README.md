@@ -28,8 +28,20 @@
 
 ## 运行方式
 
-- **普通用户**：下载 `dist/实用工具.exe`，双击即可使用（Windows 7+，需有 Python 运行环境无关的独立 exe）。
-- **开发者**：用带 tkinter 的 Python 启动器运行 `实用工具.py`，或用 `build.bat` 重新打包。
+### 普通用户（推荐）—— 下载即用，无需安装任何东西
+
+1. 点这里下载：**[⬇ 下载 实用工具.exe](https://github.com/H-ZHOWEI/shiyong-gongju/raw/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe)**
+   （也可以在仓库里点开 `dist/实用工具.exe`，再点右上角的「Download raw file」图标下载。）
+2. 把下载到的 `实用工具.exe` 放到任意文件夹（例如 `D:\实用工具\`），**双击就能打开**。
+3. 不需要安装 Python、不需要安装任何运行库、不需要管理员权限。
+
+> 说明：这是 PyInstaller 打好的**单文件独立 exe**，Python 解释器和全部依赖（Pillow / python-docx / openpyxl）都已经打包在里面，所以体积约 35MB，属于正常大小。
+
+第一次打开如果 Windows 弹出「已保护你的电脑」蓝色提示，是因为这个 exe 没有买数字签名证书，属于正常现象：点「更多信息」→「仍要运行」即可。程序完全离线运行，不联网上传任何文件（只有你主动点「检查更新」时才会访问 GitHub 拿版本清单）。
+
+### 开发者
+
+用带 tkinter 的 Python 启动器运行 `实用工具.py`，或双击 `build.bat` 重新打包。
 
 ```bash
 py 实用工具.py                # 启动图形界面
