@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-实用工具 v1.4.1  (单文件 GUI)
+实用工具 v1.4.2  (单文件 GUI)
 ================================
 整合自多个独立小程序，统一在一个带图形界面的软件里：
   * FolderImg2Word   —— 文件夹图片 -> Word（A4 / 2x2 / 7x11cm）
@@ -81,7 +81,7 @@ _PRINTERS = None
 #  - PyInstaller 单文件重启必剥离 _MEIPASS2/_PYI_APPLICATION_HOME_DIR/_PYI_ARCHIVE_FILE 并设
 #    PYINSTALLER_RESET_ENVIRONMENT=1，避免两进程互删 base_library.zip
 # ============================================================
-APP_VERSION = '1.4.1'
+APP_VERSION = '1.4.2'
 GITHUB_OWNER = 'H-ZHOWEI'
 GITHUB_REPO = 'shiyong-gongju'
 UPDATE_MANIFEST_PRIMARY = ('https://raw.githubusercontent.com/%s/%s/main/version.json'
@@ -89,6 +89,63 @@ UPDATE_MANIFEST_PRIMARY = ('https://raw.githubusercontent.com/%s/%s/main/version
 # exe 下载走镜像轮换（raw / ghproxy.net / gh-proxy.com / github.com/raw）
 _EXE_MIRROR_PREFIX = ['https://ghproxy.net/', 'https://gh-proxy.com/']
 _UPDATE_SKIP_NETWORK = False   # 自测可置 True 跳过网络
+
+# ============================================================
+# 全局字体管理（命名字体 -> 切换工具栏“字体大小”可实时缩放全部界面）
+#  - 用 Tk 命名字体（named font），所有控件以名字引用；
+#    重新配置字体后，引用它的控件会即时更新，无需重建界面。
+#  - 新增功能若需固定字号，直接用对应的字体名字符串即可，已自动纳入缩放。
+# ============================================================
+FONT_ROLES = {
+    # 名字        (字体族,       基准字号, 字重,      下划线)
+    'AppTitle':    ('微软雅黑', 18, 'bold',   0),     # 顶部软件标题
+    'AppBig':      ('微软雅黑', 14, 'bold',   0),     # 功能/章节标题
+    'AppNavTitle': ('微软雅黑', 11, 'bold',   0),     # 侧栏“功能列表”等小标题
+    'AppIntroTitle': ('微软雅黑', 13, 'bold', 0),     # 功能介绍弹窗标题
+    'AppBold':     ('微软雅黑', 10, 'bold',   0),     # 强调文字 / 主按钮
+    'AppBold12':   ('微软雅黑', 12, 'bold',   0),     # 更新完成提示
+    'AppBase':     ('微软雅黑', 10, 'normal', 0),     # 默认正文字体
+    'AppSmall':    ('微软雅黑', 9,  'normal', 0),     # 提示 / 次要文字
+    'AppIntro':    ('微软雅黑', 11, 'normal', 0),     # 介绍正文
+    'AppMono':     ('Consolas', 9,  'normal', 0),     # 日志 / 代码示例
+    'AppLink':     ('微软雅黑', 9,  'normal', 1),     # 超链接
+}
+_FONT_SCALE = 1.0   # 当前缩放倍率（菜单可改）
+
+
+def setup_fonts(scale=None):
+    """创建或更新全部命名字体。scale 为相对于基准的倍率。
+
+    用 Tk 原生 `font create`/`font configure` 直接注册命名字体（比 tkinter.font
+    的 Font 对象更确定，且所有控件以名字字符串引用后，重新配置即全局即时生效）。
+    """
+    global _FONT_SCALE
+    if scale is not None:
+        _FONT_SCALE = scale
+    import tkinter as _tk
+    root = _tk._default_root
+    if root is None:
+        return
+    tkcall = root.tk.call
+    try:
+        names = set(tkcall('font', 'names'))
+    except Exception:
+        names = set()
+    for name, (fam, base, weight, under) in FONT_ROLES.items():
+        size = max(7, round(base * _FONT_SCALE))
+        args = ('-family', fam, '-size', size, '-weight', weight, '-underline', under)
+        if name in names:
+            tkcall('font', 'configure', name, *args)
+        else:
+            try:
+                tkcall('font', 'create', name, *args)
+            except _tk.TclError:
+                tkcall('font', 'configure', name, *args)
+
+
+def _font(name):
+    """返回命名字体的名字字符串（供需要传对象而非名字字符串的场合）。"""
+    return name
 
 
 def _app_dir():
@@ -1227,7 +1284,7 @@ class LinkTool(Tool):
 
         ttk.Label(f, text='链接：', foreground='#555').pack(anchor='w')
         link_lbl = tk.Label(f, text=self.url, fg='#1a73e8', cursor='hand2',
-                            font=('微软雅黑', 10, 'underline'))
+                            font='AppLink')
         link_lbl.pack(anchor='w', pady=(0, 10))
         link_lbl.bind('<Button-1>', lambda e: self._open())
 
@@ -1340,15 +1397,9 @@ class DocxReplaceTool(Tool):
     def build(self, parent, app):
         self.app = app
         self.stop_req = False
-        # 可滚动容器（选项较多）
-        canvas = tk.Canvas(parent, bg='white', highlightthickness=0)
-        sbar = ttk.Scrollbar(parent, orient='vertical', command=canvas.yview)
-        canvas.configure(yscrollcommand=sbar.set)
-        canvas.pack(side='left', fill='both', expand=True)
-        sbar.pack(side='right', fill='y')
-        inner = tk.Frame(canvas, bg='white')
-        canvas.create_window((0, 0), window=inner, anchor='nw')
-        inner.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        # 直接构建到 parent（_select 已提供可滚动画布 + 尺寸自适应，
+        # 不再额外套一层画布，避免内容横向无法铺满的问题）。
+        inner = parent
 
         def LF(title):
             f = ttk.LabelFrame(inner, text=title, padding=8)
@@ -1414,7 +1465,7 @@ class DocxReplaceTool(Tool):
         ex = ttk.Frame(f)
         ex.pack(fill='x', pady=(2, 4))
         ttk.Label(ex, text='示例：', width=10, anchor='n').pack(side='left')
-        ex_box = tk.Text(ex, wrap='word', height=3, font=('Consolas', 9),
+        ex_box = tk.Text(ex, wrap='word', height=3, font='AppMono',
                          relief='sunken', borderwidth=1, padx=4, pady=2)
         ex_box.insert('1.0',
                       '故障\\d+个        匹配“故障”后跟数字\n'
@@ -1447,7 +1498,7 @@ class DocxReplaceTool(Tool):
                            ('modified', '已修改'), ('errors', '错误')]:
             ttk.Label(sc, text=label + '：', width=8).pack(side='left', padx=2)
             ttk.Label(sc, textvariable=self.stat_vars[key], width=6,
-                      font=('微软雅黑', 10, 'bold')).pack(side='left', padx=(0, 14))
+                      font='AppBold').pack(side='left', padx=(0, 14))
 
         # 按钮行
         bf = ttk.Frame(inner)
@@ -1457,6 +1508,10 @@ class DocxReplaceTool(Tool):
         self.stop_btn = ttk.Button(bf, text='⏹ 停止', command=self._on_stop, state=tk.DISABLED)
         self.stop_btn.pack(side='left')
         ttk.Button(bf, text='🔍 测试查找', command=self._on_test).pack(side='left', padx=6)
+
+        # 弹性占位：窗口放大时把多余空白收拢到最底部，避免中间突兀留白
+        spacer = tk.Frame(inner, height=1)
+        spacer.pack(fill='both', expand=True)
 
     def _pick(self):
         p = filedialog.askdirectory(title='选择包含 Word 文档的文件夹')
@@ -1671,7 +1726,7 @@ class App:
         self._current = None
         self._build_nav()
         self._select(0)
-        self.log('欢迎使用「实用工具」v1.4.1 —— 选择左侧功能，配置后点「开始」。')
+        self.log('欢迎使用「实用工具」v1.4.2 —— 选择左侧功能，配置后点「开始」。')
         self.log('已整合：文件夹图片→Word / Excel图片→Word / Word批量替换 / 批量打印 / PDF工具。')
         self.log('右侧栏实时显示「成品」与「历史记录」，双击列表项即可打开对应成品。')
         self.log('每个功能顶部都有「❔ 功能介绍」按钮，点开即可看详细说明。')
@@ -1681,11 +1736,12 @@ class App:
 
     # ---------- 样式 ----------
     def _apply_styles(self):
+        setup_fonts(_FONT_SCALE)
         try:
             s = ttk.Style()
             s.theme_use('clam')
-            # 全局默认字体（中文更舒适）
-            FONT = ('微软雅黑', 10)
+            # 全局默认字体（命名字体，菜单可实时缩放）
+            FONT = 'AppBase'
             s.configure('.', font=FONT)
             s.configure('TLabel', font=FONT)
             s.configure('TButton', font=FONT)
@@ -1694,18 +1750,18 @@ class App:
             s.configure('TCombobox', font=FONT)
             s.configure('TSpinbox', font=FONT)
             s.configure('TEntry', font=FONT)
-            s.configure('TLabelframe.Label', font=('微软雅黑', 10, 'bold'),
+            s.configure('TLabelframe.Label', font='AppBold',
                         foreground='#34495e')
             s.configure('Accent.TButton', background='#4CAF50', foreground='white',
-                        font=('微软雅黑', 10, 'bold'))
+                        font='AppBold')
             s.map('Accent.TButton', background=[('active', '#43a047'),
                                                 ('disabled', '#a5d6a7')])
-            s.configure('Nav.TButton', font=('微软雅黑', 10))
+            s.configure('Nav.TButton', font='AppBase')
             s.configure('Link.TButton', background='#eef3f8', foreground='#1a73e8',
-                        font=('微软雅黑', 9))
+                        font='AppSmall')
             s.map('Link.TButton', background=[('active', '#dbe7f3')])
             s.configure('Top.TButton', background='#34495e', foreground='white',
-                        font=('微软雅黑', 9))
+                        font='AppSmall')
             s.map('Top.TButton', background=[('active', '#3d566e'),
                                              ('disabled', '#6b7a8a')])
         except Exception:
@@ -1718,9 +1774,9 @@ class App:
         top.pack(side='top', fill='x')
         top.pack_propagate(False)
         tk.Label(top, text='实用工具', bg='#2c3e50', fg='white',
-                  font=('微软雅黑', 18, 'bold')).pack(side='left', padx=16)
-        tk.Label(top, text='v1.4.1 · 集成多个小工具', bg='#2c3e50', fg='#aab7c4',
-                  font=('微软雅黑', 9)).pack(side='left', padx=(4, 0))
+                 font='AppTitle').pack(side='left', padx=16)
+        tk.Label(top, text='v1.4.2 · 集成多个小工具', bg='#2c3e50', fg='#aab7c4',
+                 font='AppSmall').pack(side='left', padx=(4, 0))
         self.top_bar = top
         self._build_update_ui()
 
@@ -1735,7 +1791,7 @@ class App:
         self.nav_frame.pack(side='left', fill='y')
         self.nav_frame.pack_propagate(False)
         tk.Label(self.nav_frame, text='功能列表', bg='#f4f6f8', fg='#34495e',
-                  font=('微软雅黑', 11, 'bold')).pack(anchor='w', padx=14, pady=(12, 6))
+                 font='AppNavTitle').pack(anchor='w', padx=14, pady=(12, 6))
 
         self.panel = tk.Frame(body, bg='white')
         self.panel.pack(side='left', fill='both', expand=True)
@@ -1749,11 +1805,11 @@ class App:
 
         # 成品区
         lf_p = tk.LabelFrame(self.side_frame, text='📦 成品', bg='#f4f6f8',
-                             fg='#34495e', font=('微软雅黑', 10, 'bold'))
+                             fg='#34495e', font='AppBold')
         lf_p.pack(side='top', fill='both', expand=True, padx=6, pady=(8, 4))
         pf = tk.Frame(lf_p)
         pf.pack(fill='both', expand=True, padx=4, pady=4)
-        self.prod_list = tk.Listbox(pf, font=('微软雅黑', 9), bg='white',
+        self.prod_list = tk.Listbox(pf, font='AppSmall', bg='white',
                                     relief='sunken', borderwidth=1, activestyle='none')
         psb = ttk.Scrollbar(pf, command=self.prod_list.yview)
         psb.pack(side='right', fill='y')
@@ -1765,11 +1821,11 @@ class App:
 
         # 历史记录区
         lf_h = tk.LabelFrame(self.side_frame, text='🕘 历史记录', bg='#f4f6f8',
-                             fg='#34495e', font=('微软雅黑', 10, 'bold'))
+                             fg='#34495e', font='AppBold')
         lf_h.pack(side='top', fill='both', expand=True, padx=6, pady=(4, 8))
         hf = tk.Frame(lf_h)
         hf.pack(fill='both', expand=True, padx=4, pady=4)
-        self.hist_list = tk.Listbox(hf, font=('微软雅黑', 9), bg='white',
+        self.hist_list = tk.Listbox(hf, font='AppSmall', bg='white',
                                     relief='sunken', borderwidth=1, activestyle='none')
         hsb = ttk.Scrollbar(hf, command=self.hist_list.yview)
         hsb.pack(side='right', fill='y')
@@ -1801,7 +1857,7 @@ class App:
         log_row = tk.Frame(bottom, bg='#fafafa')
         log_row.pack(side='top', fill='both', expand=True, padx=12, pady=(6, 8))
         self.log_text = tk.Text(log_row, height=8, wrap='word',
-                                font=('Consolas', 9), bg='white',
+                                font='AppMono', bg='white',
                                 relief='sunken', borderwidth=1, state=tk.DISABLED)
         self.log_text.pack(side='left', fill='both', expand=True)
         sb = ttk.Scrollbar(log_row, command=self.log_text.yview)
@@ -1810,8 +1866,53 @@ class App:
 
         self.status_var = tk.StringVar(value='就绪')
         st = tk.Label(self.root, textvariable=self.status_var, anchor='w',
-                      relief='sunken', bg='#ecf0f1', font=('微软雅黑', 9))
+                      relief='sunken', bg='#ecf0f1', font='AppSmall')
         st.pack(side='bottom', fill='x')
+
+        # 顶部菜单栏（设置 -> 字体大小：实时缩放全局界面）
+        self._build_menu()
+
+    # ---------- 菜单 ----------
+    def _build_menu(self):
+        self.font_scale_var = tk.DoubleVar(value=_FONT_SCALE)
+        menubar = tk.Menu(self.root)
+        m_set = tk.Menu(menubar, tearoff=0)
+        m_font = tk.Menu(m_set, tearoff=0)
+        for label, sc in [('小（约 9 号）', 0.9), ('标准（约 10 号）', 1.0),
+                          ('大（约 12 号）', 1.2), ('特大（约 14 号）', 1.4),
+                          ('超大（约 16 号）', 1.6)]:
+            m_font.add_radiobutton(label=label, value=sc, variable=self.font_scale_var,
+                                  command=lambda s=sc: self.set_font_scale(s))
+        m_set.add_cascade(label='字体大小', menu=m_font)
+        m_set.add_separator()
+        m_set.add_command(label='恢复默认字体', command=lambda: self.set_font_scale(1.0))
+        m_set.add_command(label='关于「实用工具」', command=self._show_about)
+        menubar.add_cascade(label='设置', menu=m_set)
+        self.root.config(menu=menubar)
+
+    def set_font_scale(self, scale):
+        """实时缩放全局字体：重新配置命名字体，所有引用它的控件即时更新。"""
+        setup_fonts(scale)
+        try:
+            self.font_scale_var.set(scale)
+        except Exception:
+            pass
+        tag = '默认' if abs(scale - 1.0) < 1e-6 else ('%.1fx' % scale)
+        self.log('字体大小已调整：%s。' % tag)
+
+    def _show_about(self):
+        win = tk.Toplevel(self.root)
+        win.title('关于「实用工具」')
+        win.geometry('420x200')
+        win.transient(self.root)
+        win.grab_set()
+        tk.Label(win, text='实用工具', font='AppTitle', fg='#2c3e50').pack(pady=(18, 4))
+        tk.Label(win, text='版本 v' + APP_VERSION, font='AppBase', fg='#555').pack()
+        tk.Label(win, text='集成多项小工具：文件夹图片→Word / Excel图片→Word /\n'
+                           'Word批量替换 / 批量打印(PDF) / PDF工具',
+                 font='AppSmall', fg='#777', justify='center').pack(pady=(10, 4))
+        ttk.Button(win, text='关闭', command=win.destroy,
+                   style='Accent.TButton').pack(pady=(8, 0))
 
     # ---------- 导航 ----------
     def _build_nav(self):
@@ -1819,7 +1920,7 @@ class App:
         for i, t in enumerate(self.tools):
             b = tk.Button(self.nav_frame, text=t.name, anchor='w',
                           relief='flat', bg='#f4f6f8', fg='#2c3e50',
-                          font=('微软雅黑', 10), padx=14, pady=8,
+                          font='AppBase', padx=14, pady=8,
                           command=lambda idx=i: self._select(idx))
             b.pack(side='top', fill='x', padx=6, pady=2)
             self.nav_buttons.append(b)
@@ -1837,11 +1938,12 @@ class App:
         title_row = tk.Frame(head, bg='#eef3f8')
         title_row.pack(fill='x', padx=12, pady=(8, 6))
         tk.Label(title_row, text=self._current.name, bg='#eef3f8', fg='#1f3a5f',
-                 font=('微软雅黑', 14, 'bold')).pack(side='left')
+                 font='AppBig').pack(side='left')
         ttk.Button(title_row, text='❔ 功能介绍', style='Link.TButton',
                    command=lambda: self.show_intro(self._current)).pack(side='right')
         # 功能区（各功能自己的控件）—— 放在可滚动画布里，
         # 这样选项很多时（如 Word 批量替换）底部按钮也不会被遮挡。
+        # 同时让内容宽度/高度跟随画布：放大窗口时自动铺满，不再留下大片空地。
         canvas = tk.Canvas(self.panel, bg='white', highlightthickness=0)
         vsb = ttk.Scrollbar(self.panel, orient='vertical', command=canvas.yview)
         canvas.configure(yscrollcommand=vsb.set)
@@ -1850,9 +1952,14 @@ class App:
         area = tk.Frame(canvas, bg='white')
 
         def _on_configure(_e=None):
-            canvas.configure(scrollregion=canvas.bbox('all'))
-            # 让内容宽度跟随画布，避免横向溢出导致按钮被裁掉
-            canvas.itemconfig(area_id, width=max(1, canvas.winfo_width()))
+            # 内容比画布小时，把内框撑满画布（铺满、不留空地）；
+            # 内容比画布大时，按实际高度滚动。
+            cw, ch = canvas.winfo_width(), canvas.winfo_height()
+            iw, ih = area.winfo_reqwidth(), area.winfo_reqheight()
+            w = max(cw, iw)
+            h = max(ch, ih)
+            canvas.itemconfig(area_id, width=w, height=h)
+            canvas.configure(scrollregion=(0, 0, w, h))
 
         area_id = canvas.create_window((0, 0), window=area, anchor='nw')
         area.bind('<Configure>', _on_configure)
@@ -1893,11 +2000,11 @@ class App:
         bar = tk.Frame(win, bg='#2c3e50')
         bar.pack(fill='x')
         tk.Label(bar, text=tool.name, bg='#2c3e50', fg='white',
-                 font=('微软雅黑', 13, 'bold'), anchor='w', padx=14, pady=10).pack(fill='x')
+                 font='AppIntroTitle', anchor='w', padx=14, pady=10).pack(fill='x')
         # 内容（可滚动）
         f = tk.Frame(win, bg='white')
         f.pack(fill='both', expand=True, padx=12, pady=10)
-        txt = tk.Text(f, wrap='word', font=('微软雅黑', 11), relief='flat',
+        txt = tk.Text(f, wrap='word', font='AppIntro', relief='flat',
                       padx=8, pady=8, bg='white', state='disabled',
                       spacing1=3, spacing2=2)
         sb = ttk.Scrollbar(f, command=txt.yview)
@@ -2061,14 +2168,14 @@ class App:
         f = tk.Frame(self.top_bar, bg='#2c3e50')
         f.pack(side='right', padx=14)
         self.ver_label = tk.Label(f, text='v' + APP_VERSION, bg='#2c3e50', fg='#cfe3ff',
-                                  font=('微软雅黑', 10), cursor='hand2')
+                                  font='AppBase', cursor='hand2')
         self.ver_label.pack(side='left', padx=(0, 8))
         self.ver_label.bind('<Button-1>', lambda e: self._check_update(manual=True))
         self.update_btn = ttk.Button(f, text='检查更新', style='Top.TButton',
                                      command=lambda: self._check_update(manual=True))
         self.update_btn.pack(side='left', padx=(0, 8))
         self.update_status = tk.Label(f, text='', bg='#2c3e50', fg='#aab7c4',
-                                      font=('微软雅黑', 9))
+                                      font='AppSmall')
         self.update_status.pack(side='left', padx=(0, 8))
         self.restore_src_btn = ttk.Button(f, text='恢复默认更新地址', style='Top.TButton',
                                           command=self._restore_default_source)
@@ -2085,13 +2192,13 @@ class App:
         inner = tk.Frame(b, bg='#fff3cd')
         inner.pack(fill='x', padx=12, pady=6)
         self.banner_text = tk.Label(inner, text='', bg='#fff3cd', fg='#7a5b00',
-                                    font=('微软雅黑', 10, 'bold'))
+                                    font='AppBold')
         self.banner_text.pack(side='left')
         self.banner_notes = tk.Label(inner, text='', bg='#fff3cd', fg='#8a6d00',
-                                     font=('微软雅黑', 9))
+                                     font='AppSmall')
         self.banner_notes.pack(side='left', padx=10)
         self.banner_stage = tk.Label(inner, text='', bg='#fff3cd', fg='#8a6d00',
-                                     font=('微软雅黑', 9))
+                                     font='AppSmall')
         self.banner_stage.pack(side='left', padx=10)
         self.banner_pb = ttk.Progressbar(inner, orient='horizontal', mode='determinate',
                                          maximum=1)
@@ -2231,8 +2338,8 @@ class App:
         win.title('更新完成')
         win.geometry('360x150')
         win.transient(self.root)
-        tk.Label(win, text='新版本已安装完成！', font=('微软雅黑', 12, 'bold')).pack(pady=(16, 6))
-        tk.Label(win, text='是否立即重启以使用新版本？', font=('微软雅黑', 10)).pack(pady=4)
+        tk.Label(win, text='新版本已安装完成！', font='AppBold12').pack(pady=(16, 6))
+        tk.Label(win, text='是否立即重启以使用新版本？', font='AppBase').pack(pady=4)
         bf = tk.Frame(win)
         bf.pack(pady=10)
         ttk.Button(bf, text='立即重启', style='Accent.TButton',

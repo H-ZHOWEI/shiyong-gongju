@@ -1,9 +1,9 @@
 {
-  "version": "1.4.1",
+  "version": "1.4.2",
   "download_url": "https://raw.githubusercontent.com/H-ZHOWEI/shiyong-gongju/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe",
-  "notes": "UI 优化：功能介绍弹窗居中显示；各功能页改为可滚动（底部按钮不再被遮挡）；移除右侧栏「打开所选成品/打开对应成品」按钮，统一双击打开成品。",
-  "sha256": "bc725b01794cabdf6808918ff5b64897eebf87d5ac64ec0ef0ddd275cdb86a90",
-  "size": 34845448,
+  "notes": "界面自适应增强 + 新增顶部菜单「设置→字体大小」：放大窗口时内容自动铺满（横向与纵向均不再留大片空地）；新增顶栏菜单可实时调整全局字体大小（小/标准/大/特大/超大）。",
+  "sha256": "d9a7c3bec20a56400ca0a119a509a31ac5f12ff3eb2daaa56da936b264195c2a",
+  "size": 34850211,
   "pub_date": "2026-11-14",
   "mandatory": false
 }
