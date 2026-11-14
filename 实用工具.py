@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-实用工具 v1.4.2  (单文件 GUI)
+实用工具 v1.4.3  (单文件 GUI)
 ================================
 整合自多个独立小程序，统一在一个带图形界面的软件里：
   * FolderImg2Word   —— 文件夹图片 -> Word（A4 / 2x2 / 7x11cm）
@@ -81,7 +81,7 @@ _PRINTERS = None
 #  - PyInstaller 单文件重启必剥离 _MEIPASS2/_PYI_APPLICATION_HOME_DIR/_PYI_ARCHIVE_FILE 并设
 #    PYINSTALLER_RESET_ENVIRONMENT=1，避免两进程互删 base_library.zip
 # ============================================================
-APP_VERSION = '1.4.2'
+APP_VERSION = '1.4.3'
 GITHUB_OWNER = 'H-ZHOWEI'
 GITHUB_REPO = 'shiyong-gongju'
 UPDATE_MANIFEST_PRIMARY = ('https://raw.githubusercontent.com/%s/%s/main/version.json'
@@ -422,12 +422,23 @@ def restart_app(root=None):
 
 
 def cleanup_mei():
-    """启动时清理历史残留的 _MEI 临时目录（单文件打包会堆到 GB 级）。"""
+    """启动时清理历史残留的 _MEI 临时目录（单文件打包会堆到 GB 级）。
+
+    注意：必须跳过当前进程自己的解压目录 sys._MEIPASS——
+    否则会把本进程刚解压出来的 tcl/tk 脚本数据删掉，
+    下一行 tk.Tk() 就会报「Can't find a usable init.tcl」。
+    （被占用的 dll 删不掉、纯数据 .tcl/.enc 却删得掉，正好造成这个现象。）
+    """
     try:
         tmp = tempfile.gettempdir()
+        me = getattr(sys, '_MEIPASS', None)          # 打包运行时 = 当前进程解压目录；源码运行时无此属性
+        me_abs = os.path.abspath(me).lower() if me else None
         for name in os.listdir(tmp):
             if name.startswith('_MEI') and os.path.isdir(os.path.join(tmp, name)):
-                shutil.rmtree(os.path.join(tmp, name), ignore_errors=True)
+                p = os.path.abspath(os.path.join(tmp, name))
+                if me_abs and p.lower() == me_abs:
+                    continue   # 自己的解压目录，绝不能删
+                shutil.rmtree(p, ignore_errors=True)
     except Exception:
         pass
 
@@ -1726,7 +1737,7 @@ class App:
         self._current = None
         self._build_nav()
         self._select(0)
-        self.log('欢迎使用「实用工具」v1.4.2 —— 选择左侧功能，配置后点「开始」。')
+        self.log('欢迎使用「实用工具」v1.4.3 —— 选择左侧功能，配置后点「开始」。')
         self.log('已整合：文件夹图片→Word / Excel图片→Word / Word批量替换 / 批量打印 / PDF工具。')
         self.log('右侧栏实时显示「成品」与「历史记录」，双击列表项即可打开对应成品。')
         self.log('每个功能顶部都有「❔ 功能介绍」按钮，点开即可看详细说明。')
@@ -1775,7 +1786,7 @@ class App:
         top.pack_propagate(False)
         tk.Label(top, text='实用工具', bg='#2c3e50', fg='white',
                  font='AppTitle').pack(side='left', padx=16)
-        tk.Label(top, text='v1.4.2 · 集成多个小工具', bg='#2c3e50', fg='#aab7c4',
+        tk.Label(top, text='v1.4.3 · 集成多个小工具', bg='#2c3e50', fg='#aab7c4',
                  font='AppSmall').pack(side='left', padx=(4, 0))
         self.top_bar = top
         self._build_update_ui()
@@ -2479,5 +2490,17 @@ def _selftest():
 if __name__ == '__main__':
     if '--selftest' in sys.argv:
         _selftest()
+    elif '--tkprobe' in sys.argv:
+        # 打包后验证 Tcl/Tk 能否真正初始化（selftest 不建 Tk，测不出 init.tcl 问题）
+        try:
+            _r = tk.Tk()
+            _r.withdraw()
+            print('TK OK', _r.tk.eval('info patchlevel'),
+                  '| tcl_library =', _r.tk.eval('info library'))
+            _r.destroy()
+            sys.exit(0)
+        except Exception:
+            traceback.print_exc()
+            sys.exit(1)
     else:
         App().root.mainloop()

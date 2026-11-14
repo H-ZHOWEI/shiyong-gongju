@@ -1,9 +1,9 @@
 {
-  "version": "1.4.2",
+  "version": "1.4.3",
   "download_url": "https://raw.githubusercontent.com/H-ZHOWEI/shiyong-gongju/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe",
-  "notes": "界面自适应增强 + 新增顶部菜单「设置→字体大小」：放大窗口时内容自动铺满（横向与纵向均不再留大片空地）；新增顶栏菜单可实时调整全局字体大小（小/标准/大/特大/超大）。",
-  "sha256": "9ce9eda5ff3fd42eac07f99d41ee7089bb190dde18911a468f5c56cab6040246",
-  "size": 34849371,
+  "notes": "修复双击 exe 报「Can't find a usable init.tcl」无法启动的严重 bug（启动清理临时目录时误删了自身解压目录里的 Tcl 数据）。",
+  "sha256": "1111db00f3f6558777dfa6f5a2eae2aede9a734807cded8d7b9c70e9cd4c2cf6",
+  "size": 34849761,
   "pub_date": "2026-11-14",
-  "mandatory": false
+  "mandatory": true
 }
