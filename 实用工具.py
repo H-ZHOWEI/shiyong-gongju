@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-实用工具 v1.4.0  (单文件 GUI)
+实用工具 v1.4.1  (单文件 GUI)
 ================================
 整合自多个独立小程序，统一在一个带图形界面的软件里：
   * FolderImg2Word   —— 文件夹图片 -> Word（A4 / 2x2 / 7x11cm）
@@ -81,7 +81,7 @@ _PRINTERS = None
 #  - PyInstaller 单文件重启必剥离 _MEIPASS2/_PYI_APPLICATION_HOME_DIR/_PYI_ARCHIVE_FILE 并设
 #    PYINSTALLER_RESET_ENVIRONMENT=1，避免两进程互删 base_library.zip
 # ============================================================
-APP_VERSION = '1.4.0'
+APP_VERSION = '1.4.1'
 GITHUB_OWNER = 'H-ZHOWEI'
 GITHUB_REPO = 'shiyong-gongju'
 UPDATE_MANIFEST_PRIMARY = ('https://raw.githubusercontent.com/%s/%s/main/version.json'
@@ -1671,7 +1671,7 @@ class App:
         self._current = None
         self._build_nav()
         self._select(0)
-        self.log('欢迎使用「实用工具」v1.4.0 —— 选择左侧功能，配置后点「开始」。')
+        self.log('欢迎使用「实用工具」v1.4.1 —— 选择左侧功能，配置后点「开始」。')
         self.log('已整合：文件夹图片→Word / Excel图片→Word / Word批量替换 / 批量打印 / PDF工具。')
         self.log('右侧栏实时显示「成品」与「历史记录」，双击列表项即可打开对应成品。')
         self.log('每个功能顶部都有「❔ 功能介绍」按钮，点开即可看详细说明。')
@@ -1719,7 +1719,7 @@ class App:
         top.pack_propagate(False)
         tk.Label(top, text='实用工具', bg='#2c3e50', fg='white',
                   font=('微软雅黑', 18, 'bold')).pack(side='left', padx=16)
-        tk.Label(top, text='v1.4.0 · 集成多个小工具', bg='#2c3e50', fg='#aab7c4',
+        tk.Label(top, text='v1.4.1 · 集成多个小工具', bg='#2c3e50', fg='#aab7c4',
                   font=('微软雅黑', 9)).pack(side='left', padx=(4, 0))
         self.top_bar = top
         self._build_update_ui()
@@ -1761,8 +1761,6 @@ class App:
         self.prod_list.pack(side='left', fill='both', expand=True)
         self.prod_list.bind('<Double-Button-1>',
                             lambda e: self._open_list(self.prod_list, self.products))
-        tk.Button(lf_p, text='打开所选成品', command=lambda: self._open_list(self.prod_list, self.products)) \
-            .pack(anchor='e', padx=4, pady=(0, 4))
         self.prod_list.insert(tk.END, '（暂无成品，运行功能后会显示在这里）')
 
         # 历史记录区
@@ -1779,8 +1777,6 @@ class App:
         self.hist_list.pack(side='left', fill='both', expand=True)
         self.hist_list.bind('<Double-Button-1>',
                             lambda e: self._open_list(self.hist_list, self.history))
-        tk.Button(lf_h, text='打开对应成品', command=lambda: self._open_list(self.hist_list, self.history)) \
-            .pack(anchor='e', padx=4, pady=(0, 4))
         self.hist_list.insert(tk.END, '（暂无记录）')
 
         # 底部：进度 + 日志 + 状态
@@ -1844,9 +1840,33 @@ class App:
                  font=('微软雅黑', 14, 'bold')).pack(side='left')
         ttk.Button(title_row, text='❔ 功能介绍', style='Link.TButton',
                    command=lambda: self.show_intro(self._current)).pack(side='right')
-        # 功能区（各功能自己的控件）
-        area = tk.Frame(self.panel, bg='white')
-        area.pack(side='top', fill='both', expand=True)
+        # 功能区（各功能自己的控件）—— 放在可滚动画布里，
+        # 这样选项很多时（如 Word 批量替换）底部按钮也不会被遮挡。
+        canvas = tk.Canvas(self.panel, bg='white', highlightthickness=0)
+        vsb = ttk.Scrollbar(self.panel, orient='vertical', command=canvas.yview)
+        canvas.configure(yscrollcommand=vsb.set)
+        canvas.pack(side='left', fill='both', expand=True)
+        vsb.pack(side='right', fill='y')
+        area = tk.Frame(canvas, bg='white')
+
+        def _on_configure(_e=None):
+            canvas.configure(scrollregion=canvas.bbox('all'))
+            # 让内容宽度跟随画布，避免横向溢出导致按钮被裁掉
+            canvas.itemconfig(area_id, width=max(1, canvas.winfo_width()))
+
+        area_id = canvas.create_window((0, 0), window=area, anchor='nw')
+        area.bind('<Configure>', _on_configure)
+        canvas.bind('<Configure>', _on_configure)
+        # 鼠标滚轮滚动（切换功能时先解绑旧的，避免重复绑定）
+        old = getattr(self, '_wheel_id', None)
+        if old:
+            try:
+                self.root.unbind('<MouseWheel>', old)
+            except Exception:
+                pass
+        self._wheel_id = canvas.bind_all(
+            '<MouseWheel>',
+            lambda e: canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units'))
         self._current.build(area, self)
 
     def show_intro(self, tool):
@@ -1860,6 +1880,15 @@ class App:
             win.tk.call('tk', 'scaling', 1.0)  # 与父窗口一致的清晰缩放
         except Exception:
             pass
+        # 居中显示在应用主窗口中央（而非屏幕左上角）
+        self.root.update_idletasks()
+        win.update_idletasks()
+        rw, rh = self.root.winfo_width(), self.root.winfo_height()
+        rx, ry = self.root.winfo_rootx(), self.root.winfo_rooty()
+        ww, wh = 580, 440
+        x = max(0, rx + (rw - ww) // 2)
+        y = max(0, ry + (rh - wh) // 2)
+        win.geometry('+%d+%d' % (x, y))
         # 标题条
         bar = tk.Frame(win, bg='#2c3e50')
         bar.pack(fill='x')
