@@ -81,7 +81,7 @@ _PRINTERS = None
 #  - PyInstaller 单文件重启必剥离 _MEIPASS2/_PYI_APPLICATION_HOME_DIR/_PYI_ARCHIVE_FILE 并设
 #    PYINSTALLER_RESET_ENVIRONMENT=1，避免两进程互删 base_library.zip
 # ============================================================
-APP_VERSION = '1.4.4'
+APP_VERSION = '1.4.5'
 GITHUB_OWNER = 'H-ZHOWEI'
 GITHUB_REPO = 'shiyong-gongju'
 UPDATE_MANIFEST_PRIMARY = ('https://raw.githubusercontent.com/%s/%s/main/version.json'
@@ -153,6 +153,13 @@ def _app_dir():
     if getattr(sys, 'frozen', False):
         return os.path.dirname(os.path.abspath(sys.executable))
     return os.path.dirname(os.path.abspath(__file__))
+
+
+def _icon_path():
+    """图标文件路径：打包后从 PyInstaller 解包目录取，脚本模式从源码目录取。"""
+    if getattr(sys, 'frozen', False):
+        return os.path.join(getattr(sys, '_MEIPASS', _app_dir()), 'app_icon.ico')
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app_icon.ico')
 
 
 def _mirror_urls(primary):
@@ -1747,6 +1754,10 @@ class App:
         cleanup_mei()   # 启动清理历史残留 _MEI 临时目录
         self.root = tk.Tk()
         self.root.title('实用工具')
+        try:
+            self.root.iconbitmap(_icon_path())   # 窗口标题栏 / 任务栏图标
+        except Exception:
+            pass
         self.root.geometry('1220x680')
         self.root.minsize(1040, 600)
         self._running = False

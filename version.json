@@ -1,9 +1,9 @@
 {
-  "version": "1.4.4",
+  "version": "1.4.5",
   "download_url": "https://raw.githubusercontent.com/H-ZHOWEI/shiyong-gongju/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe",
-  "notes": "新增「沉浸式翻译」网址快捷入口（左侧功能列表最后一项，点击即可在浏览器打开官网）。",
-  "sha256": "2aa1eaf0b2d63f7e36e366e1161a6d549e6d278f8db91ab6b0fc8343ff299ab4",
-  "size": 34853476,
+  "notes": "新增专属应用图标（exe 文件图标与窗口标题栏图标）。",
+  "sha256": "a2ab91cda587b0cf4da0bf506fa15f90eecc60b0c196def9d31ac1052a2a2b09",
+  "size": 34879494,
   "pub_date": "2026-11-16",
   "mandatory": false
 }
