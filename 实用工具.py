@@ -81,7 +81,7 @@ _PRINTERS = None
 #  - PyInstaller 单文件重启必剥离 _MEIPASS2/_PYI_APPLICATION_HOME_DIR/_PYI_ARCHIVE_FILE 并设
 #    PYINSTALLER_RESET_ENVIRONMENT=1，避免两进程互删 base_library.zip
 # ============================================================
-APP_VERSION = '1.4.3'
+APP_VERSION = '1.4.4'
 GITHUB_OWNER = 'H-ZHOWEI'
 GITHUB_REPO = 'shiyong-gongju'
 UPDATE_MANIFEST_PRIMARY = ('https://raw.githubusercontent.com/%s/%s/main/version.json'
@@ -1276,18 +1276,14 @@ class PrintTool(Tool):
         app.add_history('批量打印（PDF）', note=f'打印 {total} 个，成功 {ok} / 失败 {fail}')
 
 
-class LinkTool(Tool):
-    name = 'PDF工具'
-    desc = '在线 PDF 工具合集（PDF24）：合并、分割、压缩、转换、加水印等'
-    intro = ('功能介绍：这里是 PDF24 在线工具箱的快捷入口，提供合并、分割、压缩、格式转换、加水印等常见 PDF 操作。\n'
-             '· 点击链接文字或「打开网站」按钮，会在你的默认浏览器里打开 PDF24 中文站点。\n'
-             '· 所有处理都在浏览器中完成，本软件不保存、不上传你的文件。\n'
-             '用法：点「打开网站」即可使用，无需任何额外配置。')
-    url = 'https://tools.pdf24.org/zh/'
+class WebLinkTool(Tool):
+    """通用「打开网站」功能：新增网址只需继承此类，定义 name/desc/intro/url 即可。"""
+    frame_title = '在线工具'
+    tip = '（点击链接或按钮，将在默认浏览器中打开网站）'
 
     def build(self, parent, app):
         self.app = app
-        f = ttk.LabelFrame(parent, text='PDF 在线工具', padding=10)
+        f = ttk.LabelFrame(parent, text=self.frame_title, padding=10)
         f.pack(fill='both', expand=True, padx=8, pady=8)
 
         ttk.Label(f, text=self.desc, wraplength=520,
@@ -1301,7 +1297,7 @@ class LinkTool(Tool):
 
         ttk.Button(f, text='🌐 打开网站', command=self._open,
                    style='Accent.TButton').pack(anchor='w', pady=(4, 0))
-        ttk.Label(f, text='（点击链接或按钮，将在默认浏览器中打开 PDF24 在线工具）',
+        ttk.Label(f, text=self.tip,
                   foreground='#888').pack(anchor='w', pady=(8, 0))
 
     def _open(self):
@@ -1310,6 +1306,31 @@ class LinkTool(Tool):
             self.app.log('已打开网站：' + self.url)
         except Exception as e:
             self.app.log('打开失败：' + str(e))
+
+
+class LinkTool(WebLinkTool):
+    name = 'PDF工具'
+    desc = '在线 PDF 工具合集（PDF24）：合并、分割、压缩、转换、加水印等'
+    intro = ('功能介绍：这里是 PDF24 在线工具箱的快捷入口，提供合并、分割、压缩、格式转换、加水印等常见 PDF 操作。\n'
+             '· 点击链接文字或「打开网站」按钮，会在你的默认浏览器里打开 PDF24 中文站点。\n'
+             '· 所有处理都在浏览器中完成，本软件不保存、不上传你的文件。\n'
+             '用法：点「打开网站」即可使用，无需任何额外配置。')
+    url = 'https://tools.pdf24.org/zh/'
+    frame_title = 'PDF 在线工具'
+    tip = '（点击链接或按钮，将在默认浏览器中打开 PDF24 在线工具）'
+
+
+class TranslateTool(WebLinkTool):
+    name = '沉浸式翻译'
+    desc = '沉浸式翻译（Immersive Translate）：网页双语对照翻译、PDF / 电子书翻译等在线服务'
+    intro = ('功能介绍：这里是「沉浸式翻译」官网的快捷入口，一个浏览器翻译工具。\n'
+             '· 支持网页双语对照翻译，也能翻译 PDF、EPUB 电子书和视频字幕。\n'
+             '· 点击链接文字或「打开网站」按钮，会在你的默认浏览器里打开官网。\n'
+             '· 具体安装浏览器插件与账号设置，请在官网页面按提示操作；本软件不保存、不上传你的文件。\n'
+             '用法：点「打开网站」即可使用，无需任何额外配置。')
+    url = 'https://app.immersivetranslate.com/'
+    frame_title = '沉浸式翻译'
+    tip = '（点击链接或按钮，将在默认浏览器中打开沉浸式翻译官网）'
 
 
 # ============================================================
@@ -1733,12 +1754,13 @@ class App:
         self.last_output_is_folder = False
         self._apply_styles()
         self._build_ui()
-        self.tools = [FolderTool(), ExcelTool(), DocxReplaceTool(), PrintTool(), LinkTool()]
+        self.tools = [FolderTool(), ExcelTool(), DocxReplaceTool(), PrintTool(),
+                      LinkTool(), TranslateTool()]
         self._current = None
         self._build_nav()
         self._select(0)
-        self.log('欢迎使用「实用工具」v1.4.3 —— 选择左侧功能，配置后点「开始」。')
-        self.log('已整合：文件夹图片→Word / Excel图片→Word / Word批量替换 / 批量打印 / PDF工具。')
+        self.log('欢迎使用「实用工具」v' + APP_VERSION + ' —— 选择左侧功能，配置后点「开始」。')
+        self.log('已整合：文件夹图片→Word / Excel图片→Word / Word批量替换 / 批量打印 / PDF工具 / 沉浸式翻译。')
         self.log('右侧栏实时显示「成品」与「历史记录」，双击列表项即可打开对应成品。')
         self.log('每个功能顶部都有「❔ 功能介绍」按钮，点开即可看详细说明。')
         self.log('顶部「检查更新」可手动检查；每次启动也会后台静默检查新版本。')

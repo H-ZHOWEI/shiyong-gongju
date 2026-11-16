@@ -1,9 +1,9 @@
 {
-  "version": "1.4.3",
+  "version": "1.4.4",
   "download_url": "https://raw.githubusercontent.com/H-ZHOWEI/shiyong-gongju/main/dist/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7.exe",
-  "notes": "修复双击 exe 报「Can't find a usable init.tcl」无法启动的严重 bug（启动清理临时目录时误删了自身解压目录里的 Tcl 数据）。",
-  "sha256": "1111db00f3f6558777dfa6f5a2eae2aede9a734807cded8d7b9c70e9cd4c2cf6",
-  "size": 34849761,
-  "pub_date": "2026-11-14",
-  "mandatory": true
+  "notes": "新增「沉浸式翻译」网址快捷入口（左侧功能列表最后一项，点击即可在浏览器打开官网）。",
+  "sha256": "2aa1eaf0b2d63f7e36e366e1161a6d549e6d278f8db91ab6b0fc8343ff299ab4",
+  "size": 34853476,
+  "pub_date": "2026-11-16",
+  "mandatory": false
 }
